@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: agenda-fono
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/agenda}
+    username: ${DB_USER:agenda}
+    password: ${DB_PASSWORD:agenda}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# Configurações da WhatsApp Cloud API (valores reais vêm de variáveis de ambiente)
+whatsapp:
+  verify-token: ${WHATSAPP_VERIFY_TOKEN:dev-verify-token}
+  app-secret: ${WHATSAPP_APP_SECRET:dev-app-secret}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:}
+  api-version: ${WHATSAPP_API_VERSION:v23.0}
+  graph-base-url: ${WHATSAPP_GRAPH_BASE_URL:https://graph.facebook.com}
