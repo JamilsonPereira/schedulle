@@ -1,15 +1,11 @@
 package br.com.agendafono.agenda;
 
+import br.com.agendafono.IntegracaoBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.sql.SQLException;
 import java.util.UUID;
@@ -22,13 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Garante a regra RN-03 direto no banco: um profissional (ou sala) nunca tem
  * duas sessões ativas sobrepostas, mesmo com requisições concorrentes.
  */
-@SpringBootTest
-@Testcontainers
-class SessaoConflitoIntegrationTest {
-
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
+class SessaoConflitoIntegrationTest extends IntegracaoBase {
 
     private static final String EXCLUSION_VIOLATION = "23P01";
 
@@ -42,7 +32,7 @@ class SessaoConflitoIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        jdbc.execute("TRUNCATE sessao, paciente, responsavel, profissional, recurso, clinica CASCADE");
+        jdbc.execute("TRUNCATE clinica CASCADE");
 
         clinica = insertReturningId("INSERT INTO clinica (nome) VALUES ('Clínica Teste') RETURNING id");
         UUID responsavel = insertReturningId(

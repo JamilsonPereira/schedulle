@@ -25,6 +25,8 @@ Variáveis de ambiente: veja `.env.example`. Sem nada configurado, a aplicação
 mvn verify
 ```
 
+Os testes de integração sobem um Postgres via Testcontainers: **o Docker Desktop precisa estar aberto**.
+
 - `SessaoConflitoIntegrationTest`: prova, num Postgres real (Testcontainers), que o banco barra
   duas sessões sobrepostas do mesmo fono ou da mesma sala (regra RN-03).
 - `WebhookSignatureVerifierTest` e `WhatsAppWebhookControllerTest`: verificação do webhook
@@ -46,7 +48,8 @@ Monólito modular com um pacote por módulo (fronteiras descritas em cada `packa
 
 ```
 br.com.agendafono
-├── agenda        grades, bloqueios, disponibilidade, séries, sessões
+├── agenda        disponibilidade, sessões, reservas, faltas, presença
+├── compartilhado relógio, clínica da requisição (tenant)
 ├── bot           máquina de estados da conversa
 ├── clinica       tenants, usuários, profissionais
 ├── mensageria    WhatsApp Cloud API (webhook, envio, templates)
@@ -58,12 +61,27 @@ br.com.agendafono
 - [x] **Passo 0 — Fundação**: projeto (Spring Boot 4.1), schema do MVP sem convênio (V1), constraint de conflito testada, webhook com verificação e assinatura, CI.
 - [ ] **Passo 1 — Mensageria**: DTOs do payload da Meta, deduplicação por `wamid`, fila de eventos (outbox), cliente de envio (`RestClient`), bot "eco" funcionando no número de teste.
 - [ ] **Passo 2 — Cadastros da clínica**: entidades JPA de clínica, profissional, grade e bloqueio; API de cadastro; seed de uma clínica de exemplo.
-- [ ] **Passo 3 — Disponibilidade**: cálculo de slots (grade − bloqueios − sessões), pré-reserva de 5 min, job de expiração, `GET /disponibilidade`.
+- [x] **Passo 3 — Disponibilidade e agendamento**: cálculo de slots (grade − bloqueios − sessões), pré-reserva de 5 min do bot, agendamento/remarcação/cancelamento pelo painel, aviso de falta, presença, job de expiração, API `/api/v1/disponibilidade` e `/api/v1/sessoes`.
 - [ ] **Passo 4 — Bot de agendamento**: consentimento LGPD, menu, paciente novo, escolha de horário e confirmação da avaliação.
 - [ ] **Passo 5 — Terapias recorrentes e lembretes**: séries, materialização de 8 semanas, templates de lembrete com botões Confirmo/Vou faltar.
 - [ ] **Passo 6 — Faltas e transbordo**: aviso de falta, reposição, lista de espera e caixa de entrada da recepção.
 - [ ] **Passo 7 — Pacientes e anexos**: ficha do paciente, anexos no S3 e pendências (convênio e guias ficam para depois do MVP).
 - [ ] **Passo 8 — Produção**: RLS no Postgres, deploy AWS São Paulo, observabilidade com Grafana, checklist de segurança, piloto.
+
+## API da agenda (provisória)
+
+Até o Passo 2 (autenticação), a clínica é informada no header `X-Clinica-Id`. Não exponha a API publicamente antes disso.
+
+| Método | Rota | Uso |
+| --- | --- | --- |
+| GET | `/api/v1/disponibilidade?profissionalId=&de=AAAA-MM-DD&ate=AAAA-MM-DD[&duracaoMin=]` | Horários livres |
+| GET | `/api/v1/sessoes?de=<ISO>&ate=<ISO>[&profissionalId=]` | Sessões do período |
+| GET | `/api/v1/sessoes/{id}` | Uma sessão |
+| POST | `/api/v1/sessoes` | Agendar (`pacienteId`, `profissionalId`, `tipo`, `inicio`, `duracaoMin?`, `recursoId?`, `permitirForaDaGrade?`) |
+| POST | `/api/v1/sessoes/{id}/remarcar` | Remarcar (`novoInicio`, `versao?`) |
+| PATCH | `/api/v1/sessoes/{id}/status` | `acao`: `CONFIRMAR_PRESENCA`, `CANCELAR`, `AVISAR_FALTA`, `REGISTRAR_ATENDIMENTO`, `REGISTRAR_FALTA_SEM_AVISO` |
+
+Erros seguem RFC 9457 (Problem Details): 409 `/erros/horario-indisponivel` traz `alternativas`; 422 `/erros/horario-fora-da-agenda` traz `motivo`.
 
 ## Documentação
 

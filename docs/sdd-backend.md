@@ -233,20 +233,20 @@ sequenceDiagram
     participant A as agenda
     participant DB as Postgres
     B->>A: reservar(slot)
-    A->>DB: INSERT sessao RESERVADA expira_em=agora+5min
+    A->>A: verifica grade, bloqueios e ocupação
+    A->>DB: BEGIN; cancela reservas vencidas do fono/sala
+    A->>DB: INSERT sessao RESERVADA expira_em=agora+5min; COMMIT
     alt 23P01 conflito
-        A->>DB: cancela reservas expiradas do fono
-        A->>DB: tenta INSERT de novo (1 vez)
-        A-->>B: HorarioIndisponivel + 3 alternativas
+        A-->>B: HorarioIndisponivel + 3 alternativas (nova leitura)
     else ok
-        A-->>B: reservaId
+        A-->>B: reserva
     end
-    B->>A: confirmar(reservaId)
-    A->>DB: UPDATE status=AGENDADA WHERE id AND status=RESERVADA AND expira_em > now()
-    A-->>B: 1 linha = confirmado; 0 = reserva expirou
+    B->>A: confirmarReserva(id)
+    A->>DB: UPDATE status=AGENDADA WHERE id AND versao
+    A-->>B: confirmado, ou ReservaExpirada
 ```
 
-A constraint não pode usar `now()`, então uma reserva expirada ainda ocupa o horário até o job limpá-la. Por isso, diante de um conflito, o caso de uso cancela as reservas vencidas daquele fono e tenta uma segunda vez antes de desistir.
+A constraint não pode usar `now()`, então uma reserva vencida ainda ocupa o horário até o job limpá-la. Por isso, na mesma transação do INSERT, o caso de uso primeiro cancela as reservas vencidas daquele fono ou sala. Se a constraint ainda recusar, a transação é desfeita e as alternativas são calculadas numa leitura nova (no Postgres, uma transação com erro não aceita mais comandos).
 
 ### 6.3 Materialização de séries (RN-10, RN-11)
 

@@ -13,6 +13,9 @@ spring:
       hibernate.jdbc.time_zone: UTC
   flyway:
     enabled: true
+  mvc:
+    problemdetails:
+      enabled: true   # erros no formato RFC 9457
 
 server:
   port: ${PORT:8080}
