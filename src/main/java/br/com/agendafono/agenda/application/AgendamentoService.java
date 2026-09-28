@@ -11,7 +11,10 @@ import br.com.agendafono.agenda.StatusSessao;
 import br.com.agendafono.agenda.application.port.ConfiguracaoAgendaPort.ConfiguracaoProfissional;
 import br.com.agendafono.agenda.application.port.SessaoRepository;
 import br.com.agendafono.agenda.domain.Sessao;
+import br.com.agendafono.agenda.TransicaoInvalidaException;
 import br.com.agendafono.compartilhado.Relogio;
+import br.com.agendafono.pacientes.PacienteConsulta;
+import br.com.agendafono.pacientes.Views.PacienteView;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,20 +41,23 @@ class AgendamentoService implements Agendamento, Presenca {
     private final ApplicationEventPublisher eventos;
     private final TransactionTemplate transacao;
     private final Relogio relogio;
+    private final PacienteConsulta pacientes;
 
     AgendamentoService(SessaoRepository sessoes, AgendaDoProfissional agenda, ApplicationEventPublisher eventos,
-                       TransactionTemplate transacao, Relogio relogio) {
+                       TransactionTemplate transacao, Relogio relogio, PacienteConsulta pacientes) {
         this.sessoes = sessoes;
         this.agenda = agenda;
         this.eventos = eventos;
         this.transacao = transacao;
         this.relogio = relogio;
+        this.pacientes = pacientes;
     }
 
     // ------------------------------------------------------------------ criação
 
     @Override
     public SessaoView reservar(Reservar c) {
+        exigirPacienteAtivo(c.clinicaId(), c.pacienteId());
         Instant agora = relogio.agora();
         ConfiguracaoProfissional cfg = agenda.configuracao(c.clinicaId(), c.profissionalId());
         Periodo periodo = Periodo.de(c.inicio(), agenda.duracao(c.duracaoMin(), cfg));
@@ -65,6 +71,7 @@ class AgendamentoService implements Agendamento, Presenca {
 
     @Override
     public SessaoView agendar(Agendar c) {
+        exigirPacienteAtivo(c.clinicaId(), c.pacienteId());
         Instant agora = relogio.agora();
         ConfiguracaoProfissional cfg = agenda.configuracao(c.clinicaId(), c.profissionalId());
         Periodo periodo = Periodo.de(c.inicio(), agenda.duracao(c.duracaoMin(), cfg));
@@ -182,6 +189,15 @@ class AgendamentoService implements Agendamento, Presenca {
         sessoes.atualizar(sessao);
         publicar(sessao);
         return SessaoMapper.view(sessao);
+    }
+
+    /** O banco também garante (FK composta) que o paciente é da mesma clínica; aqui a mensagem fica clara. */
+    private void exigirPacienteAtivo(UUID clinicaId, UUID pacienteId) {
+        PacienteView paciente = pacientes.paciente(clinicaId, pacienteId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Paciente", pacienteId));
+        if (!paciente.ativo()) {
+            throw new TransicaoInvalidaException("Paciente inativo não pode ser agendado");
+        }
     }
 
     private Sessao carregar(UUID clinicaId, UUID sessaoId) {

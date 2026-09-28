@@ -16,6 +16,10 @@ spring:
   mvc:
     problemdetails:
       enabled: true   # erros no formato RFC 9457
+  servlet:
+    multipart:
+      max-file-size: 10MB     # anexos de pacientes
+      max-request-size: 11MB
 
 server:
   port: ${PORT:8080}
@@ -33,3 +37,9 @@ whatsapp:
   access-token: ${WHATSAPP_ACCESS_TOKEN:}
   api-version: ${WHATSAPP_API_VERSION:v23.0}
   graph-base-url: ${WHATSAPP_GRAPH_BASE_URL:https://graph.facebook.com}
+
+# Módulo pacientes
+pacientes:
+  versao-consentimento-atual: ${PACIENTES_VERSAO_CONSENTIMENTO:2026-09-v1}
+  diretorio-anexos: ${ANEXOS_DIR:./dados/anexos}   # armazenamento local (dev); S3 em produção
+  fuso: America/Sao_Paulo
