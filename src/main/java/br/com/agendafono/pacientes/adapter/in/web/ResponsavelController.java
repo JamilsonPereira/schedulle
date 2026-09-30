@@ -17,6 +17,7 @@ import br.com.agendafono.pacientes.application.PacientesProperties;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,6 +62,7 @@ class ResponsavelController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCAO')")
     ResponsavelView atualizar(ClinicaId clinica, @PathVariable UUID id,
                               @Valid @RequestBody AtualizarResponsavelRequest r) {
         return cadastro.atualizarResponsavel(new AtualizarResponsavel(clinica.valor(), id, r.nome(),
@@ -69,6 +71,7 @@ class ResponsavelController {
 
     /** Consentimento coletado presencialmente (termo assinado na recepção). */
     @PostMapping("/{id}/consentimento")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCAO')")
     ResponsavelView registrarConsentimento(ClinicaId clinica, @PathVariable UUID id,
                                            @RequestBody(required = false) ConsentimentoRequest r) {
         String versao = r != null && r.versaoTexto() != null && !r.versaoTexto().isBlank()
@@ -77,12 +80,14 @@ class ResponsavelController {
     }
 
     @DeleteMapping("/{id}/consentimento")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCAO')")
     ResponsavelView revogarConsentimento(ClinicaId clinica, @PathVariable UUID id) {
         return cadastro.revogarConsentimento(clinica.valor(), id, Canal.PAINEL, EVIDENCIA_PAINEL);
     }
 
     /** LGPD art. 18, II: arquivo JSON com os dados do titular. */
     @GetMapping("/{id}/exportacao")
+    @PreAuthorize("hasRole('ADMIN')")
     ResponseEntity<ExportacaoDados> exportar(ClinicaId clinica, @PathVariable UUID id) {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"dados-titular-" + id + ".json\"")
@@ -92,6 +97,7 @@ class ResponsavelController {
 
     /** LGPD art. 18, IV e VI: eliminação por anonimização. Irreversível. Restrito a ADMIN no Passo 2. */
     @PostMapping("/{id}/anonimizacao")
+    @PreAuthorize("hasRole('ADMIN')")
     ResponseEntity<Void> anonimizar(ClinicaId clinica, @PathVariable UUID id) {
         direitos.anonimizar(clinica.valor(), id);
         return ResponseEntity.noContent().build();

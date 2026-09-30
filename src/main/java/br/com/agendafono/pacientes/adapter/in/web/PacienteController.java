@@ -23,6 +23,7 @@ import br.com.agendafono.pacientes.adapter.in.web.PacientesDtos.VersaoRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -64,6 +65,7 @@ class PacienteController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCAO')")
     ResponseEntity<PacienteView> cadastrar(ClinicaId clinica, @Valid @RequestBody NovoPacienteRequest r) {
         PacienteView criado = cadastro.cadastrarPeloPainel(new CadastroPeloPainel(clinica.valor(),
                 Telefone.digitado(r.telefoneResponsavel()), r.nomeResponsavel(), r.nome(), r.dataNascimento(),
@@ -79,17 +81,20 @@ class PacienteController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCAO')")
     PacienteView atualizar(ClinicaId clinica, @PathVariable UUID id, @Valid @RequestBody AtualizarPacienteRequest r) {
         return cadastro.atualizarPaciente(new AtualizarPaciente(clinica.valor(), id, r.nome(), r.dataNascimento(),
                 r.demanda(), r.versao()));
     }
 
     @PostMapping("/{id}/inativar")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCAO')")
     PacienteView inativar(ClinicaId clinica, @PathVariable UUID id, @RequestBody(required = false) VersaoRequest r) {
         return cadastro.inativarPaciente(clinica.valor(), id, r != null ? r.versao() : null);
     }
 
     @PostMapping("/{id}/reativar")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCAO')")
     PacienteView reativar(ClinicaId clinica, @PathVariable UUID id, @RequestBody(required = false) VersaoRequest r) {
         return cadastro.reativarPaciente(clinica.valor(), id, r != null ? r.versao() : null);
     }
@@ -100,6 +105,7 @@ class PacienteController {
     }
 
     @PostMapping(path = "/{id}/anexos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCAO', 'FONO')")
     ResponseEntity<AnexoView> anexar(ClinicaId clinica, @PathVariable UUID id,
                                      @RequestPart("arquivo") MultipartFile arquivo,
                                      @RequestParam(defaultValue = "DOCUMENTO") TipoAnexo tipo) {

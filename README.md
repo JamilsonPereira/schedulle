@@ -49,9 +49,9 @@ Monólito modular com um pacote por módulo (fronteiras descritas em cada `packa
 ```
 br.com.agendafono
 ├── agenda        disponibilidade, sessões, reservas, faltas, presença
-├── compartilhado relógio, clínica da requisição (tenant)
+├── compartilhado relógio, segurança (JWT, perfis), auditoria
 ├── bot           máquina de estados da conversa
-├── clinica       tenants, usuários, profissionais
+├── clinica       clínica, usuários e login, salas, profissionais, grade, bloqueios
 ├── mensageria    WhatsApp Cloud API (webhook, envio, templates)
 └── pacientes     responsáveis, pacientes, consentimento, anexos, direitos do titular
 ```
@@ -60,7 +60,7 @@ br.com.agendafono
 
 - [x] **Passo 0 — Fundação**: projeto (Spring Boot 4.1), schema do MVP sem convênio (V1), constraint de conflito testada, webhook com verificação e assinatura, CI.
 - [ ] **Passo 1 — Mensageria**: DTOs do payload da Meta, deduplicação por `wamid`, fila de eventos (outbox), cliente de envio (`RestClient`), bot "eco" funcionando no número de teste.
-- [ ] **Passo 2 — Cadastros da clínica**: entidades JPA de clínica, profissional, grade e bloqueio; API de cadastro; seed de uma clínica de exemplo.
+- [x] **Passo 2 — Clínica e autenticação**: login com JWT RS256 (15 min) + refresh token rotativo, perfis ADMIN/RECEPCAO/FONO, bloqueio após 5 tentativas, troca de senha, usuários, clínica e política, salas, profissionais e grade, bloqueios de agenda, onboarding de clínica, auditoria. A clínica passa a vir do token (fim do header `X-Clinica-Id`).
 - [x] **Passo 3 — Disponibilidade e agendamento**: cálculo de slots (grade − bloqueios − sessões), pré-reserva de 5 min do bot, agendamento/remarcação/cancelamento pelo painel, aviso de falta, presença, job de expiração, API `/api/v1/disponibilidade` e `/api/v1/sessoes`.
 - [ ] **Passo 4 — Bot de agendamento**: consentimento LGPD, menu, paciente novo, escolha de horário e confirmação da avaliação.
 - [ ] **Passo 5 — Terapias recorrentes e lembretes**: séries, materialização de 8 semanas, templates de lembrete com botões Confirmo/Vou faltar.
@@ -68,12 +68,73 @@ br.com.agendafono
 - [x] **Passo 7 — Pacientes e anexos** (parcial): responsáveis, pacientes, consentimento LGPD com histórico, busca, ficha, anexos (armazenamento local; S3 no Passo 8), exportação e anonimização. Pendentes: auditoria de acesso e endpoint `/pendencias`. Convênio e guias ficam para depois do MVP.
 - [ ] **Passo 8 — Produção**: RLS no Postgres, deploy AWS São Paulo, observabilidade com Grafana, checklist de segurança, piloto.
 
-## API da agenda (provisória)
+## Autenticação
 
-Até o Passo 2 (autenticação), a clínica é informada no header `X-Clinica-Id`. Não exponha a API publicamente antes disso.
+Todas as rotas `/api/v1/**` exigem `Authorization: Bearer <tokenAcesso>`, exceto login, refresh, logout e o
+onboarding de plataforma. A clínica e o perfil vêm do token; não há como acessar dados de outra clínica.
+
+| Perfil | Pode |
+| --- | --- |
+| `ADMIN` | Tudo, inclusive usuários, dados da clínica, salas, profissionais, grade e direitos do titular (LGPD) |
+| `RECEPCAO` | Agenda completa, pacientes, responsáveis, anexos e bloqueios |
+| `FONO` | Só a própria agenda: vê as próprias sessões, registra atendimento/falta, cria e remove os próprios bloqueios; consulta pacientes |
 
 | Método | Rota | Uso |
 | --- | --- | --- |
+| POST | `/api/v1/auth/login` | `email`, `senha` → `tokenAcesso` (15 min), `refreshToken` (7 dias), `usuario` |
+| POST | `/api/v1/auth/refresh` | `refreshToken` → par novo. Refresh já usado derruba a sessão inteira (proteção contra roubo) |
+| POST | `/api/v1/auth/logout` | `refreshToken`, `todas?` |
+| GET | `/api/v1/auth/me` | Usuário logado e clínica |
+| POST | `/api/v1/auth/senha` | `senhaAtual`, `novaSenha` (mín. 10 caracteres) → derruba as outras sessões e devolve tokens novos |
+
+Usuários novos recebem senha temporária e `precisaTrocarSenha = true`: o painel deve levar direto à troca de senha.
+Cinco senhas erradas seguidas bloqueiam o login por 15 minutos.
+
+### Primeira clínica (onboarding)
+
+Defina `PLATAFORMA_TOKEN` e chame (sem o token configurado a rota responde 404):
+
+```bash
+curl -X POST http://localhost:8080/api/v1/plataforma/clinicas \
+  -H "X-Plataforma-Token: $PLATAFORMA_TOKEN" -H "Content-Type: application/json" \
+  -d '{"nomeClinica":"Clínica Falar Bem","nomeAdministrador":"Dona","emailAdministrador":"dona@falarbem.com.br"}'
+```
+
+A resposta traz a `senhaTemporaria` do ADMIN, uma única vez.
+
+### Chaves do JWT
+
+Sem `JWT_CHAVE_PRIVADA_PEM`/`JWT_CHAVE_PUBLICA_PEM`, a aplicação gera um par temporário a cada start (tokens
+caem ao reiniciar). Para fixar as chaves:
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out jwt-privada.pem   # PKCS#8
+openssl rsa -in jwt-privada.pem -pubout -out jwt-publica.pem
+```
+
+Coloque o conteúdo dos arquivos nas variáveis (em produção, no Secrets Manager). Não versione as chaves.
+
+## API da clínica
+
+| Método | Rota | Uso |
+| --- | --- | --- |
+| GET · POST | `/api/v1/usuarios` | ADMIN. Criar: `nome`, `email`, `papeis` → devolve `senhaTemporaria` |
+| PUT | `/api/v1/usuarios/{id}` | ADMIN. `nome`, `papeis`, `ativo`, `versao?`. Sempre fica ao menos um ADMIN ativo |
+| POST | `/api/v1/usuarios/{id}/senha-temporaria` | ADMIN. Gera nova senha temporária e derruba as sessões do usuário |
+| GET · PUT | `/api/v1/clinica` | Dados da clínica (`nome`, `fuso`, `versao?`); PUT só ADMIN |
+| PUT | `/api/v1/clinica/politica` | ADMIN. `antecedenciaMinimaMin`, `janelaMaximaDias`, `passoMin`, `ttlReservaMin`, `antecedenciaAvisoFaltaHoras` (nulo = padrão) |
+| GET · POST · PUT | `/api/v1/recursos[/{id}]` | Salas e cabines (`nome`, `tipo`: `SALA`/`CABINE`, `ativo`) |
+| GET · POST · PUT | `/api/v1/profissionais[/{id}]` | `nome`, `registroCrfa`, `subareas`, `duracaoPadraoMin`, `usuarioId?` (login FONO vinculado) |
+| PUT | `/api/v1/profissionais/{id}/grade` | ADMIN. `intervalos`: `[{dia: "MONDAY", inicio: "08:00", fim: "12:00", recursoId?}]` |
+| POST | `/api/v1/profissionais/{id}/inativar` · `/reativar` | ADMIN |
+| GET | `/api/v1/bloqueios?de=<ISO>&ate=<ISO>[&profissionalId=]` | Bloqueios do período (inclui os da clínica inteira) |
+| POST · DELETE | `/api/v1/bloqueios[/{id}]` | `profissionalId?` (nulo = clínica inteira), `inicio`, `fim`, `motivo?` |
+
+Erros: 401 `/erros/credenciais-invalidas` e `/erros/sessao-expirada`; 403 sem permissão; 409 `/erros/versao-desatualizada`,
+`/erros/email-ja-cadastrado`, `/erros/nome-duplicado`, `/erros/grade-sobreposta`; 400 `/erros/senha-fraca`.
+
+## API da agenda
+
 | GET | `/api/v1/disponibilidade?profissionalId=&de=AAAA-MM-DD&ate=AAAA-MM-DD[&duracaoMin=]` | Horários livres |
 | GET | `/api/v1/sessoes?de=<ISO>&ate=<ISO>[&profissionalId=]` | Sessões do período |
 | GET | `/api/v1/sessoes/{id}` | Uma sessão |
@@ -83,9 +144,9 @@ Até o Passo 2 (autenticação), a clínica é informada no header `X-Clinica-Id
 
 Erros seguem RFC 9457 (Problem Details): 409 `/erros/horario-indisponivel` traz `alternativas`; 422 `/erros/horario-fora-da-agenda` traz `motivo`.
 
-## API de pacientes (provisória)
+## API de pacientes
 
-Mesmo header `X-Clinica-Id`. Telefones aceitam `(11) 99999-0000`, `11999990000` ou `+5511999990000`.
+Telefones aceitam `(11) 99999-0000`, `11999990000` ou `+5511999990000`.
 
 | Método | Rota | Uso |
 | --- | --- | --- |

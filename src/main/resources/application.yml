@@ -43,3 +43,14 @@ pacientes:
   versao-consentimento-atual: ${PACIENTES_VERSAO_CONSENTIMENTO:2026-09-v1}
   diretorio-anexos: ${ANEXOS_DIR:./dados/anexos}   # armazenamento local (dev); S3 em produção
   fuso: America/Sao_Paulo
+
+# Segurança (ADR-08). Em produção, chaves e token de plataforma vêm do Secrets Manager.
+seguranca:
+  emissor: agenda-fono
+  validade-acesso: PT15M
+  validade-refresh: P7D
+  chave-privada-pem: ${JWT_CHAVE_PRIVADA_PEM:}
+  chave-publica-pem: ${JWT_CHAVE_PUBLICA_PEM:}
+  token-plataforma: ${PLATAFORMA_TOKEN:}
+  tentativas-antes-do-bloqueio: 5
+  tempo-bloqueio: PT15M

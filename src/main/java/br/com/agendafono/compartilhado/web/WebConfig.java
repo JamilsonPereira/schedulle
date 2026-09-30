@@ -1,16 +1,2 @@
-package br.com.agendafono.compartilhado.web;
-
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import java.util.List;
-
-@Configuration(proxyBeanMethods = false)
-class WebConfig implements WebMvcConfigurer {
-
-    @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(new ClinicaIdArgumentResolver());
-    }
-}
+// Arquivo descontinuado no Passo 2: a clínica agora vem do JWT (ver compartilhado.seguranca).
+// Pode apagar este arquivo.
