@@ -7,9 +7,10 @@ import br.com.agendafono.agenda.Presenca;
 import br.com.agendafono.agenda.RecursoNaoEncontradoException;
 import br.com.agendafono.agenda.SessaoView;
 import br.com.agendafono.agenda.adapter.in.web.AgendaDtos.AlterarStatusRequest;
-import br.com.agendafono.agenda.adapter.in.web.AgendaDtos.NovaSessaoRequest;
+
 import br.com.agendafono.agenda.adapter.in.web.AgendaDtos.RemarcarRequest;
 import br.com.agendafono.agenda.adapter.in.web.AgendaDtos.AcaoStatus;
+import br.com.agendafono.agenda.adapter.in.web.request.NovaSessaoRequest;
 import br.com.agendafono.compartilhado.seguranca.UsuarioAutenticado;
 import br.com.agendafono.compartilhado.web.ClinicaId;
 import jakarta.validation.Valid;
