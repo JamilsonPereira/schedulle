@@ -125,6 +125,20 @@ class SessaoJdbcRepository implements SessaoRepository {
     }
 
     @Override
+    public List<Sessao> doPaciente(UUID clinicaId, UUID pacienteId, Instant de, Instant ate) {
+        return jdbc.sql("SELECT " + COLUNAS + " FROM sessao"
+                        + " WHERE clinica_id = :clinica AND paciente_id = :paciente"
+                        + " AND lower(periodo) >= :de AND lower(periodo) < :ate"
+                        + " ORDER BY lower(periodo) DESC")
+                .param("clinica", clinicaId)
+                .param("paciente", pacienteId)
+                .param("de", utc(de))
+                .param("ate", utc(ate))
+                .query(SESSAO)
+                .list();
+    }
+
+    @Override
     public List<Periodo> ocupadosDoProfissional(UUID clinicaId, UUID profissionalId, Periodo intervalo,
                                                 Instant agora, UUID ignorarSessaoId) {
         String sql = "SELECT lower(periodo) AS inicio, upper(periodo) AS fim FROM sessao"

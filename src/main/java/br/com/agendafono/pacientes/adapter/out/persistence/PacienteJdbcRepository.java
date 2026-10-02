@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -146,6 +147,21 @@ class PacienteJdbcRepository implements PacienteRepository {
                         rs.getString("telefone_e164")))
                 .list();
         return new Pagina<>(linhas, pagina, tamanho, total);
+    }
+
+    @Override
+    public Map<UUID, String> nomes(UUID clinicaId, Collection<UUID> pacienteIds) {
+        if (pacienteIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, String> nomes = new HashMap<>();
+        jdbc.sql("SELECT id, nome FROM paciente WHERE clinica_id = :clinica AND id IN (:ids)")
+                .param("clinica", clinicaId)
+                .param("ids", List.copyOf(pacienteIds))
+                .query((java.sql.ResultSet rs) -> {
+                    nomes.put(rs.getObject("id", UUID.class), rs.getString("nome"));
+                });
+        return nomes;
     }
 
     static String escaparLike(String texto) {

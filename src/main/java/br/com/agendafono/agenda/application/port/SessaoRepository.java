@@ -31,6 +31,9 @@ public interface SessaoRepository {
     /** Sessões cujo início está em {@code [de, ate)}; {@code profissionalId} nulo = todos. */
     List<Sessao> listar(UUID clinicaId, UUID profissionalId, Instant de, Instant ate);
 
+    /** Sessões do paciente com início em {@code [de, ate)}, mais recentes primeiro. */
+    List<Sessao> doPaciente(UUID clinicaId, UUID pacienteId, Instant de, Instant ate);
+
     /** Períodos que ocupam a agenda do profissional no intervalo (reservas vencidas não contam). */
     List<Periodo> ocupadosDoProfissional(UUID clinicaId, UUID profissionalId, Periodo intervalo, Instant agora,
                                          UUID ignorarSessaoId);

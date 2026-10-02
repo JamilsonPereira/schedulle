@@ -11,10 +11,14 @@ Stack: Java 21, Spring Boot 4.1, Maven, PostgreSQL 16, Flyway, Testcontainers.
 
 ## Rodando localmente
 
+O repositório tem duas partes: a API (Spring Boot, raiz) e o painel web em [`web/`](web/README.md) (Next.js).
+
 ```bash
 docker compose up -d          # Postgres 16 + Redis
 mvn spring-boot:run           # sobe a API em http://localhost:8080 e aplica as migrations
 curl http://localhost:8080/actuator/health
+
+cd web && npm install && npm run dev   # painel em http://localhost:3000 (veja web/README.md)
 ```
 
 Variáveis de ambiente: veja `.env.example`. Sem nada configurado, a aplicação usa valores de desenvolvimento.
@@ -66,6 +70,7 @@ br.com.agendafono
 - [ ] **Passo 5 — Terapias recorrentes e lembretes**: séries, materialização de 8 semanas, templates de lembrete com botões Confirmo/Vou faltar.
 - [ ] **Passo 6 — Faltas e transbordo**: aviso de falta, reposição, lista de espera e caixa de entrada da recepção.
 - [x] **Passo 7 — Pacientes e anexos** (parcial): responsáveis, pacientes, consentimento LGPD com histórico, busca, ficha, anexos (armazenamento local; S3 no Passo 8), exportação e anonimização. Pendentes: auditoria de acesso e endpoint `/pendencias`. Convênio e guias ficam para depois do MVP.
+- [x] **Painel web W0–W4** (`web/`): login com BFF e cookie httpOnly, permissões por perfil, configurações (clínica, política, salas, profissionais e grade, usuários), agenda dia/semana com arrastar e bloqueios, pacientes com ficha, anexos e LGPD. Pendentes: séries, inbox, métricas, SSE e OpenAPI.
 - [ ] **Passo 8 — Produção**: RLS no Postgres, deploy AWS São Paulo, observabilidade com Grafana, checklist de segurança, piloto.
 
 ## Autenticação
@@ -137,6 +142,7 @@ Erros: 401 `/erros/credenciais-invalidas` e `/erros/sessao-expirada`; 403 sem pe
 
 | GET | `/api/v1/disponibilidade?profissionalId=&de=AAAA-MM-DD&ate=AAAA-MM-DD[&duracaoMin=]` | Horários livres |
 | GET | `/api/v1/sessoes?de=<ISO>&ate=<ISO>[&profissionalId=]` | Sessões do período |
+| GET | `/api/v1/agenda/sessoes?de=<ISO>&ate=<ISO>[&profissionalId=][&pacienteId=]` | Leitura do painel: sessões com `pacienteNome`; com `pacienteId`, o histórico do paciente (máx. 400 dias) |
 | GET | `/api/v1/sessoes/{id}` | Uma sessão |
 | POST | `/api/v1/sessoes` | Agendar (`pacienteId`, `profissionalId`, `tipo`, `inicio`, `duracaoMin?`, `recursoId?`, `permitirForaDaGrade?`) |
 | POST | `/api/v1/sessoes/{id}/remarcar` | Remarcar (`novoInicio`, `versao?`) |

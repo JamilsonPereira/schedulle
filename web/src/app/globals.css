@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+/*
+ * Tokens do painel (SDD Web, seção 9). Tema claro por padrão e escuro pelo sistema operacional.
+ * Cores de status são semânticas e usadas pela agenda, pela ficha e pelos badges — sempre junto de ícone ou texto.
+ */
+:root {
+  --fundo: #f6f7f9;
+  --superficie: #ffffff;
+  --superficie-2: #f1f3f6;
+  --texto: #18202b;
+  --texto-suave: #5a6574;
+  --borda: #dde2e8;
+  --primaria: #1f5fbf;
+  --primaria-texto: #ffffff;
+  --primaria-suave: #e7effb;
+  --perigo: #b42318;
+  --perigo-suave: #fdecea;
+  --sucesso: #1e7a46;
+  --aviso: #9a5b00;
+  --foco: #1f5fbf;
+  --hachura: #e6e9ee;
+
+  --status-reservada: #6b7280;
+  --status-reservada-fundo: #f3f4f6;
+  --status-agendada: #1f5fbf;
+  --status-agendada-fundo: #e7effb;
+  --status-confirmada: #1e7a46;
+  --status-confirmada-fundo: #e5f4ec;
+  --status-atendida: #4f7d63;
+  --status-atendida-fundo: #eef4f0;
+  --status-falta-avisada: #9a5b00;
+  --status-falta-avisada-fundo: #fdf3e2;
+  --status-falta: #b42318;
+  --status-falta-fundo: #fdecea;
+  --status-cancelada: #6b7280;
+  --status-cancelada-fundo: #f3f4f6;
+
+  --raio: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #0f1419;
+    --superficie: #171d24;
+    --superficie-2: #1f262f;
+    --texto: #e6eaef;
+    --texto-suave: #9aa5b1;
+    --borda: #2c3540;
+    --primaria: #6ea2f0;
+    --primaria-texto: #0b1220;
+    --primaria-suave: #1b2a40;
+    --perigo: #f2867b;
+    --perigo-suave: #3a1d1b;
+    --sucesso: #6fcf97;
+    --aviso: #f0b45a;
+    --foco: #8db8f5;
+    --hachura: #232b35;
+
+    --status-reservada: #a3acb8;
+    --status-reservada-fundo: #232a33;
+    --status-agendada: #8db8f5;
+    --status-agendada-fundo: #1b2a40;
+    --status-confirmada: #6fcf97;
+    --status-confirmada-fundo: #17301f;
+    --status-atendida: #9cc4ad;
+    --status-atendida-fundo: #1c2a22;
+    --status-falta-avisada: #f0b45a;
+    --status-falta-avisada-fundo: #33270f;
+    --status-falta: #f2867b;
+    --status-falta-fundo: #3a1d1b;
+    --status-cancelada: #a3acb8;
+    --status-cancelada-fundo: #232a33;
+  }
+}
+
+@theme inline {
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-borda: var(--borda);
+  --color-primaria: var(--primaria);
+  --color-primaria-texto: var(--primaria-texto);
+  --color-primaria-suave: var(--primaria-suave);
+  --color-perigo: var(--perigo);
+  --color-perigo-suave: var(--perigo-suave);
+  --color-sucesso: var(--sucesso);
+  --color-aviso: var(--aviso);
+  --color-foco: var(--foco);
+  --radius-padrao: var(--raio);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  font-size: 15px;
+}
+
+body {
+  background: var(--fundo);
+  color: var(--texto);
+}
+
+:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* Fora da grade e bloqueios: hachurado, nunca só cor. */
+.hachurado {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--hachura) 0,
+    var(--hachura) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes piscar {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 0 3px var(--foco);
+  }
+}
+
+.piscar {
+  animation: piscar 0.6s ease-in-out 3;
+}

@@ -25,7 +25,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -180,6 +182,12 @@ class PacientesService implements CadastroPacientes, PacienteConsulta {
         LocalDate hoje = hoje();
         return pacientes.doResponsavel(clinicaId, responsavelId).stream()
                 .map(p -> PacientesMapper.view(p, hoje)).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, String> nomes(UUID clinicaId, Collection<UUID> pacienteIds) {
+        return pacientes.nomes(clinicaId, pacienteIds);
     }
 
     @Override

@@ -39,6 +39,9 @@ public interface Agendamento {
     /** Sessões que começam em {@code [de, ate)}; {@code profissionalId} nulo = todos. */
     List<SessaoView> listar(UUID clinicaId, UUID profissionalId, Instant de, Instant ate);
 
+    /** Histórico e próximas sessões de um paciente em {@code [de, ate)}, mais recentes primeiro (até 400 dias). */
+    List<SessaoView> doPaciente(UUID clinicaId, UUID pacienteId, Instant de, Instant ate);
+
     record Reservar(UUID clinicaId, UUID pacienteId, UUID profissionalId, TipoSessao tipo, Instant inicio,
                     Integer duracaoMin) {
         public Reservar {

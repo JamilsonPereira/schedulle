@@ -6,7 +6,9 @@ import br.com.agendafono.pacientes.Views.PacienteResumo;
 import br.com.agendafono.pacientes.Views.PacienteView;
 import br.com.agendafono.pacientes.Views.ResponsavelView;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,6 +27,9 @@ public interface PacienteConsulta {
     FichaPaciente ficha(UUID clinicaId, UUID pacienteId);
 
     Pagina<PacienteResumo> pesquisar(UUID clinicaId, Pesquisa pesquisa);
+
+    /** Nomes dos pacientes, para telas como a agenda. Ids de outra clínica são ignorados. */
+    Map<UUID, String> nomes(UUID clinicaId, Collection<UUID> pacienteIds);
 
     /**
      * @param termo   parte do nome do paciente ou do responsável, ou dígitos do telefone; nulo = todos

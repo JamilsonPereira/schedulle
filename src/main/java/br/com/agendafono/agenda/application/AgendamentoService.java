@@ -180,6 +180,15 @@ class AgendamentoService implements Agendamento, Presenca {
         return sessoes.listar(clinicaId, profissionalId, de, ate).stream().map(SessaoMapper::view).toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<SessaoView> doPaciente(UUID clinicaId, UUID pacienteId, Instant de, Instant ate) {
+        if (!ate.isAfter(de) || java.time.Duration.between(de, ate).toDays() > 400) {
+            throw new IllegalArgumentException("Intervalo inválido (máximo de 400 dias)");
+        }
+        return sessoes.doPaciente(clinicaId, pacienteId, de, ate).stream().map(SessaoMapper::view).toList();
+    }
+
     // ------------------------------------------------------------------ auxiliares
 
     private SessaoView alterar(UUID clinicaId, UUID sessaoId, Integer versaoEsperada, Consumer<Sessao> acao) {
