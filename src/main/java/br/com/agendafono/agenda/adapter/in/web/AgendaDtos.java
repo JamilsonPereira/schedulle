@@ -21,23 +21,6 @@ final class AgendaDtos {
         }
     }
 
-    record NovaSessaoRequest(
-            @NotNull UUID pacienteId,
-            @NotNull UUID profissionalId,
-            @NotNull TipoSessao tipo,
-            @NotNull Instant inicio,
-            @Min(10) @Max(240) Integer duracaoMin,
-            UUID recursoId,
-            boolean permitirForaDaGrade) {
-    }
-
-    record RemarcarRequest(
-            @NotNull Instant novoInicio,
-            UUID recursoId,
-            boolean permitirForaDaGrade,
-            Integer versao) {
-    }
-
     enum AcaoStatus {
         CONFIRMAR_PRESENCA,
         CANCELAR,
