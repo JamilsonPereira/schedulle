@@ -21,6 +21,23 @@ curl http://localhost:8080/actuator/health
 cd web && npm install && npm run dev   # painel em http://localhost:3000 (veja web/README.md)
 ```
 
+### Atalho para desenvolvimento: dados de teste com senha padrão
+
+Suba com o perfil `dev` e a aplicação cria, na primeira vez, uma clínica de teste já pronta para usar:
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+| Login | Perfil |
+| --- | --- |
+| `admin@clinica.dev` | ADMIN |
+| `recepcao@clinica.dev` | RECEPCAO |
+| `fono@clinica.dev` | FONO (vinculado à "Dra. Teste", com grade de seg a sex, 08–12 e 13–18) |
+
+Senha de todos: `Agenda-Dev-2026` (troque com a variável `DEV_SENHA_PADRAO`). Não pedem troca no primeiro acesso.
+O perfil `dev` também liga o onboarding com `PLATAFORMA_TOKEN=dev-plataforma`. **Nunca ative o perfil `dev` em produção.**
+
 Variáveis de ambiente: veja `.env.example`. Sem nada configurado, a aplicação usa valores de desenvolvimento.
 
 ## Testes
