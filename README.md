@@ -83,7 +83,7 @@ br.com.agendafono
 - [ ] **Passo 1 — Mensageria**: DTOs do payload da Meta, deduplicação por `wamid`, fila de eventos (outbox), cliente de envio (`RestClient`), bot "eco" funcionando no número de teste.
 - [x] **Passo 2 — Clínica e autenticação**: login com JWT RS256 (15 min) + refresh token rotativo, perfis ADMIN/RECEPCAO/FONO, bloqueio após 5 tentativas, troca de senha, usuários, clínica e política, salas, profissionais e grade, bloqueios de agenda, onboarding de clínica, auditoria. A clínica passa a vir do token (fim do header `X-Clinica-Id`).
 - [x] **Passo 3 — Disponibilidade e agendamento**: cálculo de slots (grade − bloqueios − sessões), pré-reserva de 5 min do bot, agendamento/remarcação/cancelamento pelo painel, aviso de falta, presença, job de expiração, API `/api/v1/disponibilidade` e `/api/v1/sessoes`.
-- [ ] **Passo 4 — Bot de agendamento**: consentimento LGPD, menu, paciente novo, escolha de horário e confirmação da avaliação.
+- [x] **Passo 4 — Bot de agendamento** (parcial): consentimento LGPD, menu, paciente novo, escolha de horário com pré-reserva, confirmação da avaliação, transbordo para a recepção e reinício após 30 min, com botões e listas da Meta. Pendente: ligar o `Bot` no worker de entrada e o envio `interactive` no worker de saída da mensageria.
 - [ ] **Passo 5 — Terapias recorrentes e lembretes**: séries, materialização de 8 semanas, templates de lembrete com botões Confirmo/Vou faltar.
 - [ ] **Passo 6 — Faltas e transbordo**: aviso de falta, reposição, lista de espera e caixa de entrada da recepção.
 - [x] **Passo 7 — Pacientes e anexos** (parcial): responsáveis, pacientes, consentimento LGPD com histórico, busca, ficha, anexos (armazenamento local; S3 no Passo 8), exportação e anonimização. Pendentes: auditoria de acesso e endpoint `/pendencias`. Convênio e guias ficam para depois do MVP.
@@ -186,6 +186,31 @@ Telefones aceitam `(11) 99999-0000`, `11999990000` ou `+5511999990000`.
 | POST | `/api/v1/responsaveis/{id}/anonimizacao` | LGPD: anonimização irreversível |
 
 Regra central: nenhum paciente é cadastrado sem consentimento do responsável (LGPD arts. 11 e 14).
+
+## Bot de agendamento (Passo 4)
+
+Máquina de estados determinística no módulo `bot` (sem IA). Cada mensagem recebida passa por `Bot.processar`; a etapa do estado atual decide a resposta, a conversa é gravada em `conversa` e as respostas vão para `evento_saida` na mesma transação (outbox).
+
+```
+INICIO → CONSENTIMENTO → MENU → PARA_QUEM → (NOVO_NOME → NOVO_NASCIMENTO → NOVA_DEMANDA) → ESCOLHER_HORARIO → CONFIRMAR → MENU
+                                    qualquer etapa → HUMANO (recepção)
+```
+
+- **Consentimento**: botões Aceito / Não aceito, com o link de `bot.politica-privacidade-url`. O aceite grava a versão de `pacientes.versao-consentimento-atual` com o `wamid` como evidência.
+- **Horários**: até 5 opções (no máximo 2 por dia) entre os fonos ativos da subárea da demanda (sem nenhum, entre todos), mais "Ver mais datas" e "Falar com a recepção". Respeita antecedência mínima e janela da clínica. A escolha cria a pré-reserva de 5 min, e o "Confirmar" vira AGENDADA. Horário tomado ou reserva vencida: o bot mostra as opções de novo.
+- **Transbordo**: a palavra "atendente" (ou "recepção", "humano"), o botão "Falar com a recepção", 2 respostas não entendidas seguidas ou nenhum horário livre. Em modo HUMANO o bot fica em silêncio até a recepção devolver a conversa. Publica `TransbordoSolicitado`.
+- **Reinício**: 30 min sem mensagem fazem a conversa voltar ao início.
+- **Texto digitado**: além de clicar, o contato pode responder "1", "2"... ou o texto da opção (WhatsApp sem suporte a botões).
+- **LGPD**: o contexto guarda só o que a conversa precisa. A anonimização do titular apaga a conversa.
+
+| Método | Rota | Quem |
+|---|---|---|
+| GET | `/api/v1/conversas/em-atendimento` | ADMIN, RECEPCAO. Conversas em modo HUMANO, telefone mascarado |
+| POST | `/api/v1/conversas/{id}/devolver-ao-bot` | ADMIN, RECEPCAO. Encerra o atendimento humano (204) |
+
+**Fila de saída (V5).** `evento_saida.tipo` aceita `TEXT` ou `INTERACTIVE`. Em `INTERACTIVE`, `payload` é o objeto `interactive` da Cloud API (`{"type":"button"|"list","body":{...},"action":{...}}`), pronto para `{"messaging_product":"whatsapp","to":<telefone>,"type":"interactive","interactive":<payload>}`; `texto` repete o corpo. Mensagens da mesma resposta saem em ordem de `criado_em`.
+
+Variável nova: `BOT_POLITICA_URL` (endereço da política de privacidade).
 
 ## Documentação
 

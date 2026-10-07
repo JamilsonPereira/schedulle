@@ -44,6 +44,10 @@ pacientes:
   diretorio-anexos: ${ANEXOS_DIR:./dados/anexos}   # armazenamento local (dev); S3 em produção
   fuso: America/Sao_Paulo
 
+# Bot de agendamento (Passo 4)
+bot:
+  politica-privacidade-url: ${BOT_POLITICA_URL:https://agendafono.com.br/privacidade}
+
 # Segurança (ADR-08). Em produção, chaves e token de plataforma vêm do Secrets Manager.
 seguranca:
   emissor: agenda-fono
